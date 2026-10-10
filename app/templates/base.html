@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" class="neo">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CallLens by TeamStellarx{% endblock %}</title>
+  <script>
+    // Apply the saved theme before the page paints. Light (white) is the default.
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem("calllens-theme-v2"); } catch (e) {}
+      var light = saved !== "dark";
+      document.documentElement.dataset.theme = light ? "light" : "dark";
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/app.css">
+  <script>
+    // Charts take their colours from the theme's CSS variables (this runs after app.css has loaded).
+    window.themeColor = function (name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    };
+    if (window.Chart) {
+      Chart.defaults.color = themeColor("--text-2");
+      Chart.defaults.borderColor = themeColor("--line");
+      Chart.defaults.font.family = '"Space Grotesk", system-ui, sans-serif';
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <header class="site">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+      <a href="/" class="brand">CallLens<small>by TeamStellarx</small></a>
+      <nav class="flex flex-wrap gap-2" aria-label="Main">
+        {% for href, label, keys in [("/", "Dashboard", ["dashboard.html"]), ("/analyse", "Run Analysis", ["analyse.html"]), ("/calls", "Calls", ["calls.html", "call.html"]), ("/root-causes", "Root Causes", ["root_causes.html"]), ("/review", "Review Queue", ["review.html"]), ("/prompt-fixes", "Prompt Fixes", ["prompt_fixes.html"]), ("/runs", "Data Runs", ["runs.html"])] %}
+        <a href="{{ href }}" class="navbtn {{ 'active' if nav in keys }}" {{ 'aria-current="page"' if nav in keys }}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+      <button type="button" id="theme-toggle" class="ml-auto" aria-label="Switch between light and dark theme">Theme</button>
+    </div>
+  </header>
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    {% include "_progress.html" %}
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    (function () {
+      var root = document.documentElement, button = document.getElementById("theme-toggle");
+      function label() { button.textContent = root.dataset.theme === "light" ? "☾ Dark" : "☀ Light"; }
+      label();
+      button.addEventListener("click", function () {
+        var next = root.dataset.theme === "light" ? "dark" : "light";
+        try { localStorage.setItem("calllens-theme-v2", next); } catch (e) {}
+        // Charts read their colours when drawn, so reload to redraw them in the new theme.
+        location.reload();
+      });
+    })();
+  </script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

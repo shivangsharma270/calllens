@@ -1,0 +1,7 @@
+- **F2 Wrong requirement captured** — the bot confirms, records, passes on or logs a requirement that differs from what the buyer clearly stated, ignores the buyer's correction, **or the call is logged BL Enriched / BL Approved / BL Generated although the buyer rejected or never confirmed the requirement**.
+- **F1 Wrong information** — the bot states something false or misleading about the product, price, IndiaMART's process, or what happens next.
+- **F5 Compliance or consent breach** — the bot shares data it should not, misrepresents who is calling, continues after the buyer clearly refuses or asks not to be called, or is rude or inappropriate.
+- **F7 Human request ignored** — the buyer clearly asks for a person and the bot does not acknowledge it or offer a route.
+- **F3 Stuck loop** — the bot asks the same question or repeats the same line 3+ times without progress.
+- **F4 Bot ended or dropped the call** — the bot or system ends, cuts off, or goes silent before the goal while the buyer is still engaged (includes technical cut-offs mid-conversation).
+- **F6 Goal failure** — the call ends without the requirement confirmed or a proper close, for a reason on the bot's side (including not adapting to an obvious language switch).

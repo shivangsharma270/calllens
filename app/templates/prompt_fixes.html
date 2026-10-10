@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Prompt fixes · CallLens by TeamStellarx{% endblock %}
+{% block content %}
+<section class="hero mb-6 flex flex-wrap items-center gap-4">
+  <div class="grow">
+    <h1 class="text-2xl font-bold">Prompt fixes</h1>
+    <p class="text-sm text-slate-600 mt-1">What to change in the bot's prompt so fewer calls go Fatal, worked out from the bot's real prompt and the calls analysed so far.</p>
+  </div>
+  <form method="post" action="/prompt-fixes/generate">
+    <button class="btn-primary rounded-lg px-5 py-3 text-base font-bold disabled:opacity-50" {{ 'disabled' if not ready }}>{{ "↻ Rebuild recommendations" if report else "▶ Build recommendations" }}</button>
+  </form>
+</section>
+
+{% if notice %}<p class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm" role="alert">{{ notice }}</p>{% endif %}
+
+{% if reviewed %}
+<h2 class="text-lg font-semibold mb-1">Issues in the prompt itself</h2>
+<p class="text-sm text-slate-600 mb-3">Found by reading the prompt next to real call transcripts. These do not depend on the automatic grades. Every quoted rule is checked against the prompt file.</p>
+{% for item in reviewed %}
+<article class="rounded-lg border border-slate-200 bg-white p-5 mb-4 fix-card">
+  <div class="flex flex-wrap items-baseline gap-3 mb-2">
+    <span class="fix-rank">{{ loop.index }}</span>
+    <h3 class="text-lg font-semibold grow">{{ item.title }}</h3>
+    <span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{{ item.impact }}</span>
+  </div>
+  <p class="text-sm mb-3">{{ item.problem }}</p>
+  <div class="grid md:grid-cols-2 gap-3 text-sm">
+    <div class="rounded-lg border border-red-300 p-3">
+      <h4 class="font-semibold text-red-600 mb-1">In the prompt now</h4>
+      <ul class="space-y-2">
+        {% for q in item.quotes %}<li>“{{ q.text }}” {% if q.verified %}<span class="text-xs text-green-700">✓ in prompt</span>{% else %}<span class="text-xs text-amber-700">⚠ not found word for word</span>{% endif %}</li>{% endfor %}
+      </ul>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 fix-new">
+      <h4 class="font-semibold text-green-700 mb-1">Suggested text</h4>
+      <p class="whitespace-pre-wrap">{{ item.suggested_text }}</p>
+    </div>
+  </div>
+  {% if item.seen_in %}
+  <p class="text-sm mt-3"><span class="font-semibold">Seen in:</span>
+    {% for s in item.seen_in %}<a class="text-blue-700 underline num" href="/calls/{{ s.call }}">{{ s.call }}</a> <span class="text-slate-600">({{ s.note }})</span>{{ "; " if not loop.last }}{% endfor %}</p>
+  {% endif %}
+</article>
+{% endfor %}
+<h2 class="text-lg font-semibold mt-8 mb-1">Suggestions from the analysed calls (AI-written)</h2>
+{% endif %}
+
+{% if not has_prompt %}
+<p class="rounded-lg border border-slate-200 bg-white p-6 text-sm">The bot's prompt is not loaded. Save it as <code>data/bot_prompt.txt</code> and reload this page.</p>
+{% elif not findings_available %}
+<p class="rounded-lg border border-slate-200 bg-white p-6 text-sm">No Fatal calls or calls with issues have been analysed yet. <a class="text-blue-700 underline" href="/analyse">Run analysis</a> on some calls first; the recommendations are built from what goes wrong in them.</p>
+{% elif not report %}
+<p class="rounded-lg border border-slate-200 bg-white p-6 text-sm">Bot prompt loaded ({{ "{:,}".format(prompt_chars) }} characters) and {{ findings_available }} calls with problems are ready. Press <strong>Build recommendations</strong>; it takes up to a minute and costs about ₹1–2.</p>
+{% else %}
+
+<div class="rounded-lg border border-slate-200 bg-white p-4 mb-4">
+  <p class="font-semibold">{{ report.summary }}</p>
+  <p class="text-xs text-slate-500 mt-2">Built {{ report.updated_at }} UTC from {{ report.findings_used }} calls with problems ({{ report.fatal_used }} Fatal) and the {{ "{:,}".format(report.prompt_chars) }}-character bot prompt.
+    {% if findings_available != report.findings_used %}<span class="text-amber-700">{{ findings_available }} such calls are available now; rebuild to include them.</span>{% endif %}</p>
+</div>
+
+<p class="mb-5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm">These are suggestions to review, not tested fixes. They are written by an AI from AI-graded calls, and the grades have not yet been checked against human auditors. "Calls affected" is the model's own count. Open the example calls before changing the prompt.</p>
+
+{% for fix in report.fixes %}
+<article class="rounded-lg border border-slate-200 bg-white p-5 mb-4 fix-card">
+  <div class="flex flex-wrap items-baseline gap-3 mb-2">
+    <span class="fix-rank">{{ loop.index }}</span>
+    <h2 class="text-lg font-semibold grow">{{ fix.title }}</h2>
+    <span class="text-sm text-slate-600 num">{{ fix.calls_affected }} call{{ "" if fix.calls_affected == 1 else "s" }}</span>
+    {% for code in fix.fatal_codes %}<a href="/calls?grade=FATAL&fatal_code={{ code }}" class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-700">{{ code }}</a>{% endfor %}
+  </div>
+  <p class="text-sm mb-3"><span class="font-semibold">What goes wrong:</span> {{ fix.what_goes_wrong }}</p>
+  <div class="grid md:grid-cols-2 gap-3 text-sm">
+    <div class="rounded-lg border border-red-300 p-3">
+      <h3 class="font-semibold text-red-600 mb-1">In the prompt now · {{ fix.prompt_section }}</h3>
+      <p class="whitespace-pre-wrap">{{ fix.current_instruction }}</p>
+      {% if fix.missing_rule %}<p class="text-xs text-slate-500 mt-2">The model found no rule for this case.</p>
+      {% elif fix.quote_verified %}<p class="text-xs text-green-700 mt-2">✓ This text is in the prompt word for word.</p>
+      {% else %}<p class="text-xs text-amber-700 mt-2">⚠ Not found word for word in the prompt. Treat the quote as a paraphrase and locate the rule yourself.</p>{% endif %}
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 fix-new">
+      <h3 class="font-semibold text-green-700 mb-1">Suggested text</h3>
+      <p class="whitespace-pre-wrap">{{ fix.suggested_text }}</p>
+    </div>
+  </div>
+  <p class="text-sm mt-3"><span class="font-semibold">Why it helps:</span> {{ fix.why_it_helps }}</p>
+  {% if fix.example_call_ids %}
+  <p class="text-sm mt-2"><span class="font-semibold">Example calls:</span>
+    {% for cid in fix.example_call_ids %}<a class="text-blue-700 underline num mr-2" href="/calls/{{ cid }}">{{ cid }}</a>{% endfor %}</p>
+  {% endif %}
+</article>
+{% endfor %}
+{% if not report.fixes %}<p class="rounded-lg border border-slate-200 bg-white p-6 text-sm">The model proposed no prompt changes from these calls.</p>{% endif %}
+
+{% if report.not_prompt_issues %}
+<div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+  <h2 class="font-semibold mb-2">Problems a prompt change will not fix</h2>
+  <ul class="list-disc pl-5 space-y-1 text-slate-700">{% for line in report.not_prompt_issues %}<li>{{ line }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

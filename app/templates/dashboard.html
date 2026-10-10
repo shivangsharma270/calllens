@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · CallLens by TeamStellarx{% endblock %}
+{% macro chart(id, title, sub, note, label) %}
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+  <h3 class="font-semibold">{{ title }}</h3>
+  <p class="text-xs text-slate-500 mb-2">{{ sub }}</p>
+  <div class="chart-box"><canvas id="{{ id }}" aria-label="{{ label }}"></canvas></div>
+  {% if note %}<p class="takeaway">{{ note }}</p>{% endif %}
+</div>
+{% endmacro %}
+{% macro empty(title, text) %}
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+  <h3 class="font-semibold">{{ title }}</h3>
+  <p class="text-sm text-slate-600 mt-2">{{ text | safe }}</p>
+</div>
+{% endmacro %}
+{% block content %}
+{% set s = stats %}
+<section class="hero mb-6 flex flex-wrap items-center gap-4">
+  <div class="grow">
+    <h1 class="text-2xl font-bold">Voice bot quality audit</h1>
+    <p class="text-sm text-slate-600 mt-1">{{ s.audited or 0 }} of {{ s.downloaded or 0 }} available recordings analysed. Click any number or bar to see the calls behind it.</p>
+  </div>
+  <a href="/analyse" class="btn-primary rounded-lg px-5 py-3 text-base font-bold">▶ Run analysis</a>
+</section>
+
+{% if not s.total %}
+<div class="rounded-lg border border-slate-200 bg-white p-6">
+  <p class="font-medium">No calls loaded yet.</p>
+  <p class="text-sm text-slate-600 mt-1">Go to <a class="text-blue-700 underline" href="/runs">Data Runs</a> to import the call log or the recordings folder.</p>
+</div>
+{% else %}
+
+<section id="graphs" class="mb-6">
+  <h2 class="font-semibold text-lg mb-3">Graphs</h2>
+  <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% if s.audited %}
+    {{ chart("gradeChart", "Call quality", "Analysed calls by grade", notes.grade, "Doughnut chart of Fatal and Non-Fatal calls") }}
+    {{ chart("flagsChart", "Risk flags", "Number of analysed calls showing each risk", notes.flags, "Bar chart of risk flags") }}
+    {% else %}
+    {{ empty("Call quality", 'Nothing analysed yet. Press <a class="text-blue-700 underline" href="/analyse">Run analysis</a> to grade some calls.') }}
+    {% endif %}
+    {% if spend.steps %}
+    {{ chart("spendChart", "Sarvam spend by step", "Rupees", notes.spend, "Bar chart of Sarvam spend by pipeline step") }}
+    {% endif %}
+    {% if trends.has_data %}
+    {{ chart("dailyChart", "Calls per day", "Number of calls in the call log, by logged outcome", notes.daily, "Line chart of calls per day by logged outcome") }}
+    {{ chart("rateChart", "Success vs abrupt disconnects", "% of each day's calls, as logged by the system", notes.rate, "Line chart of logged success and abrupt disconnect rates per day") }}
+    {{ chart("hourChart", "Calls by hour of day", "Number of calls stamped in each hour, all days together", notes.hour, "Line chart of calls by hour of day") }}
+    {% endif %}
+  </div>
+  <p class="text-xs text-slate-500 mt-2">The three time charts use the call log's timestamps; recordings from the local folder have no date and are not plotted.</p>
+</section>
+
+<section id="causes" class="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <h2 class="font-semibold text-lg grow">Top root causes</h2>
+    <a href="/review" class="rounded border border-slate-400 px-4 py-2 text-sm font-bold">Review queue · {{ s.open_reviews or 0 }} calls</a>
+    <a href="/root-causes" class="btn-primary rounded-lg px-4 py-2 text-sm font-bold">Open root causes</a>
+  </div>
+  {% if top_causes %}
+  <p class="text-xs text-slate-500 mt-1 mb-2">Ranked by priority = frequency × severity × 100.</p>
+  <ol class="text-sm space-y-2">
+    {% for c in top_causes %}
+    <li>
+      <div class="flex justify-between gap-3"><a class="text-blue-700 hover:underline" href="/root-causes">{{ loop.index }}. {{ c.name }}</a><span class="num font-semibold whitespace-nowrap">{{ "%.1f" | format(c.priority) }} · {{ c.call_count }} calls</span></div>
+      <div class="h-2 rounded bg-blue-100 mt-1"><div class="h-2 rounded bg-blue-600" style="width: {{ (100 * c.priority / top_causes[0].priority) | round | int if top_causes[0].priority else 0 }}%"></div></div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="text-sm text-slate-600 mt-2">Failed calls have not been grouped into root causes yet. Open Root Causes and press <strong>Group and rank</strong>.</p>
+  {% endif %}
+</section>
+
+<section class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 mb-6" aria-label="Key numbers">
+  <div class="kpi navy"><div class="label">All calls</div><div class="value">{{ s.total }}</div><div class="hint">log + folder</div></div>
+  <a class="kpi blue" href="/calls"><div class="label">With a recording</div><div class="value">{{ s.downloaded or 0 }}</div><div class="hint">ready to analyse</div></a>
+  <a class="kpi teal" href="/calls?status=graded"><div class="label">Analysed</div><div class="value">{{ s.audited or 0 }}</div><div class="hint">{{ pct(s.audited or 0, s.downloaded) }} of recordings</div></a>
+  <a class="kpi red" href="/calls?grade=FATAL"><div class="label">Fatal</div><div class="value">{{ s.fatal }}</div><div class="hint">{{ pct(s.fatal, s.audited or 0) }} of analysed</div></a>
+  <a class="kpi green" href="/calls?grade=NON_FATAL"><div class="label">Non-Fatal</div><div class="value">{{ s.non_fatal }}</div><div class="hint">{{ pct(s.non_fatal, s.audited or 0) }} of analysed</div></a>
+  <a class="kpi amber" href="/calls?review=open"><div class="label">To review</div><div class="value">{{ s.open_reviews or 0 }}</div><div class="hint">flagged calls</div></a>
+  <a class="kpi purple" href="/calls?supported=no"><div class="label">Log not supported</div><div class="value">{{ s.unsupported or 0 }}</div><div class="hint">transcript disagrees</div></a>
+  <a class="kpi slate" href="/calls?status=graded"><div class="label">Sarvam spend</div><div class="value">₹{{ "%.0f" | format(spend.total) }}</div><div class="hint">{% if spend.avg_per_call is not none %}₹{{ "%.2f" | format(spend.avg_per_call) }} per call{% else %}total{% endif %}</div></a>
+</section>
+
+<section id="summary" class="mb-6">
+  <div class="flex flex-wrap items-center gap-3 mb-3">
+    <h2 class="font-semibold text-lg">Summary</h2>
+    <form method="post" action="/summary/generate" class="ml-auto">
+      <button class="rounded border border-slate-400 px-3 py-1.5 text-sm font-semibold disabled:opacity-50" {{ 'disabled' if not s.audited }}>{{ "Refresh AI summary" if ai_summary else "Write AI summary" }}</button>
+    </form>
+  </div>
+  {% if not s.audited %}
+  <p class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">Nothing analysed yet. Press <a class="text-blue-700 underline" href="/analyse">Run analysis</a> and pick some calls; what is going wrong and what is working appears here.</p>
+  {% else %}
+  {% if ai_summary %}
+  <div class="rounded-lg border border-slate-200 bg-white p-4 mb-4">
+    <p class="font-semibold">{{ ai_summary.headline }}</p>
+    <p class="text-xs text-slate-500 mt-1">AI-written from {{ ai_summary.calls }} analysed calls · {{ ai_summary.updated_at }} UTC · the counted findings below are exact</p>
+  </div>
+  {% endif %}
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-red-300 bg-white p-4">
+      <h3 class="font-semibold text-red-600 mb-2">What is going wrong</h3>
+      {% if not findings.wrong %}<p class="text-sm text-slate-600">No problems found in the analysed calls.</p>{% endif %}
+      <ul class="text-sm space-y-1.5">
+        {% for f in findings.wrong %}<li class="flex gap-3"><span class="finding-count text-red-600">{{ f.count }}</span><a class="hover:underline" href="{{ f.href }}">{{ f.text }}</a></li>{% endfor %}
+      </ul>
+      {% if ai_summary and ai_summary.going_wrong %}
+      <ul class="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-700 list-disc pl-5 space-y-1">{% for line in ai_summary.going_wrong %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-4" style="border-top-color: var(--clean) !important">
+      <h3 class="font-semibold text-green-700 mb-2">What is working</h3>
+      {% if not findings.good %}<p class="text-sm text-slate-600">Nothing to report yet.</p>{% endif %}
+      <ul class="text-sm space-y-1.5">
+        {% for f in findings.good %}<li class="flex gap-3"><span class="finding-count text-green-700">{{ f.count }}</span><a class="hover:underline" href="{{ f.href }}">{{ f.text }}</a></li>{% endfor %}
+      </ul>
+      {% if ai_summary and ai_summary.going_well %}
+      <ul class="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-700 list-disc pl-5 space-y-1">{% for line in ai_summary.going_well %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-xs text-slate-500 mt-2">Counts are out of {{ findings.total }} analysed calls. Grades come from an AI grader that has not yet been checked against human auditors, and it currently marks too many calls Fatal.</p>
+  {% endif %}
+</section>
+
+<section id="fixes" class="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <h2 class="font-semibold text-lg grow">Prompt fixes</h2>
+    <a href="/prompt-fixes" class="btn-primary rounded-lg px-4 py-2 text-sm font-bold">Open prompt fixes</a>
+  </div>
+  <p class="text-sm text-slate-600 mt-2">What to change in the bot's prompt so fewer calls go wrong: reviewed issues in the prompt itself, plus suggestions from the analysed calls.</p>
+  {% if fix_report and fix_report.fixes %}
+  <ol class="text-sm space-y-1 list-decimal pl-5 mt-2">
+    {% for fix in fix_report.fixes[:3] %}<li><a class="text-blue-700 hover:underline" href="/prompt-fixes">{{ fix.title }}</a> <span class="text-slate-500">· {{ fix.calls_affected }} call{{ "" if fix.calls_affected == 1 else "s" }}</span></li>{% endfor %}
+  </ol>
+  {% endif %}
+</section>
+
+<section class="grid lg:grid-cols-3 gap-4 mb-6">
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold mb-3">Coverage</h2>
+    <ul class="text-sm divide-y divide-slate-100">
+      <li class="flex justify-between py-1.5"><span>Recordings available</span><span class="num font-semibold">{{ s.downloaded or 0 }}</span></li>
+      <li class="flex justify-between py-1.5"><span>…from the recordings folder</span><span class="num font-semibold">{{ s.from_folder or 0 }}</span></li>
+      <li class="flex justify-between py-1.5"><span>Analysed</span><span class="num font-semibold">{{ s.audited or 0 }} · {{ pct(s.audited or 0, s.downloaded) }}</span></li>
+      <li class="flex justify-between py-1.5"><a class="text-blue-700 hover:underline" href="/calls?status=error">Recording link not reachable</a><span class="num font-semibold {{ 'text-amber-600' if s.unreachable }}">{{ s.unreachable or 0 }}</span></li>
+      <li class="flex justify-between py-1.5"><a class="text-blue-700 hover:underline" href="/calls?status=no_recording">No recording in the log</a><span class="num font-semibold text-slate-500">{{ s.total - s.recorded }}</span></li>
+    </ul>
+    <h2 class="font-semibold mt-5 mb-3">Sarvam spend</h2>
+    <ul class="text-sm divide-y divide-slate-100">
+      <li class="flex justify-between py-1.5"><span>Total</span><span class="num font-semibold">₹{{ "%.2f" | format(spend.total) }}</span></li>
+      <li class="flex justify-between py-1.5"><span>Split across {{ spend.calls_tracked }} individual calls</span><span class="num font-semibold">₹{{ "%.2f" | format(spend.tracked) }}</span></li>
+      <li class="flex justify-between py-1.5"><span>Shared or earlier, not split per call</span><span class="num font-semibold">₹{{ "%.2f" | format(spend.shared) }}</span></li>
+      {% if spend.avg_per_call is not none %}<li class="flex justify-between py-1.5"><span>Average / highest, {{ spend.calls_full }} fully tracked calls</span><span class="num font-semibold">₹{{ "%.2f" | format(spend.avg_per_call) }} / ₹{{ "%.2f" | format(spend.max_per_call) }}</span></li>{% endif %}
+    </ul>
+    <p class="text-xs text-slate-500 mt-2">Each call's own spend is on its page and in the Calls list.</p>
+  </div>
+
+  <div class="lg:col-span-2 rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold">Logged disposition vs audit</h2>
+    <p class="text-sm text-slate-600 mb-3">The disposition is what the system recorded. "Not supported" counts calls where the transcript does not back it up.</p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-left text-xs uppercase">
+          <tr><th class="p-2">Disposition</th><th class="text-right">Recorded</th><th class="text-right">Analysed</th><th class="text-right">Fatal</th><th class="text-right">Non-Fatal</th><th class="text-right">% Fatal</th><th class="text-right pr-2">Not supported</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for d in dispositions %}
+          {% set q = "disposition=" ~ (d.disposition | urlencode) %}
+          <tr>
+            <td class="p-2"><a class="text-blue-700 hover:underline" href="/calls?{{ q }}">{{ d.disposition }}</a></td>
+            <td class="text-right num">{{ d.recorded }}</td>
+            <td class="text-right num">{{ d.audited or 0 }}</td>
+            <td class="text-right num"><a class="{{ 'text-red-600 font-semibold' if d.fatal else 'text-slate-400' }}" href="/calls?{{ q }}&grade=FATAL">{{ d.fatal or 0 }}</a></td>
+            <td class="text-right num"><a class="{{ 'text-green-700' if d.non_fatal else 'text-slate-400' }}" href="/calls?{{ q }}&grade=NON_FATAL">{{ d.non_fatal or 0 }}</a></td>
+            <td class="text-right num">{{ pct(d.fatal or 0, d.audited or 0) }}</td>
+            <td class="text-right num pr-2"><a class="{{ 'text-amber-600 font-semibold' if d.unsupported else 'text-slate-400' }}" href="/calls?{{ q }}&supported=no">{{ d.unsupported or 0 }}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const t = {{ trends | tojson }};
+    const flags = {{ flags | tojson }};
+    const spend = {{ spend.steps | tojson }};
+    const c = (name) => themeColor(name);
+    const series = ["--series-1", "--series-2", "--series-3", "--series-4", "--series-5", "--series-6"].map(c);
+    const grid = { color: c("--line") };
+    const line = (label, data, color, extra) => Object.assign({
+      label, data, borderColor: color, backgroundColor: color, borderWidth: 3,
+      pointRadius: 4, pointHoverRadius: 6, tension: 0.3, spanGaps: true,
+    }, extra || {});
+    const lineOptions = (suffix, more) => Object.assign({
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+        tooltip: { callbacks: { label: (i) => `${i.dataset.label}: ${i.formattedValue}${suffix}` } },
+      },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: (v) => v + suffix }, grid } },
+    }, more || {});
+    const bars = (id, labels, data, colors, prefix, onClick) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      new Chart(el, {
+        type: "bar",
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 6 }] },
+        options: {
+          indexAxis: "y", maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (i) => `${prefix}${i.formattedValue}` } } },
+          scales: { x: { beginAtZero: true, grid, ticks: { callback: (v) => prefix + v } }, y: { grid: { display: false } } },
+          onClick: (event, hit) => { if (onClick && hit.length) onClick(hit[0].index); },
+          onHover: (event, hit) => { event.native.target.style.cursor = onClick && hit.length ? "pointer" : "default"; },
+        },
+      });
+    };
+
+    const grade = document.getElementById("gradeChart");
+    if (grade) {
+      const links = ["/calls?grade=FATAL", "/calls?grade=NON_FATAL", "/calls?grade=NON_FATAL"];
+      new Chart(grade, {
+        type: "doughnut",
+        data: {
+          labels: ["Fatal", "Non-Fatal with issues", "Non-Fatal clean"],
+          datasets: [{
+            data: [{{ s.fatal }}, {{ s.non_fatal_with_issues or 0 }}, {{ s.non_fatal - (s.non_fatal_with_issues or 0) }}],
+            backgroundColor: [c("--fatal"), c("--risk"), c("--clean")], borderColor: c("--panel"), borderWidth: 3,
+          }],
+        },
+        options: {
+          maintainAspectRatio: false, cutout: "58%",
+          plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } } },
+          onClick: (event, hit) => { if (hit.length) location.href = links[hit[0].index]; },
+        },
+      });
+    }
+    bars("flagsChart", flags.map((f) => f[0].replace(/_/g, " ")), flags.map((f) => f[1]), series, "",
+      (i) => { location.href = "/calls?flag=" + flags[i][0]; });
+    bars("spendChart", spend.map((x) => x.step), spend.map((x) => x.cost), series, "₹");
+
+    if (t.has_data) {
+      new Chart(document.getElementById("dailyChart"), {
+        type: "line",
+        data: { labels: t.days, datasets: [
+          line("Logged success", t.daily.success, series[0]),
+          line("Abruptly disconnected", t.daily.abrupt, series[1]),
+          line("Caller had no need", t.daily.caller_no_need, series[2]),
+          line("Other / technical", t.daily.other, series[3]),
+        ] },
+        options: lineOptions(""),
+      });
+      new Chart(document.getElementById("rateChart"), {
+        type: "line",
+        data: { labels: t.days, datasets: [
+          line("Logged success", t.success_rate, series[0]),
+          line("Abruptly disconnected", t.abrupt_rate, series[1]),
+        ] },
+        options: lineOptions("%"),
+      });
+      new Chart(document.getElementById("hourChart"), {
+        type: "line",
+        data: { labels: t.hours, datasets: [line("Calls", t.hourly_total, series[5], { pointRadius: 2 })] },
+        options: lineOptions("", { plugins: { legend: { display: false } } }),
+      });
+    }
+  })();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,104 @@
+# Phrase lists for speaker labelling and the rule-based signals. Edit freely; no code change needed.
+# Every entry is a case-insensitive regular expression. Saaras "codemix" output writes Hindi in
+# Devanagari and English words in Latin script, so most phrases appear here in both spellings.
+
+# --- speaker labelling ---------------------------------------------------------------------
+# Turns that suggest the bot (greeting, requirement read-back). Used by the rule-based fallback.
+bot_patterns:
+  - requirement
+  - रिक्वायरमेंट
+  - india\s?mart
+  - इंडिया\s?मार्ट
+  - enquiry
+  - इंक्वायरी
+  - (confirm|कन्फर्म) (kar|कर)
+
+# Lines only the bot says: a sentence matching one is labelled BOT whatever the model said.
+# Keep this strict; a wrong entry mislabels callers.
+bot_only_patterns:
+  - india\s?mart
+  - इंडिया\s?मार्ट
+  - seller details
+  - sellers? available
+  - समझ नहीं पा(ई|या)
+  - दिन शुभ हो
+  - के बारे में बात कर लेते
+  - (बात|मदद) कर सकती हू[ंँ]
+  - जानकारी दे सकती हू[ंँ]
+
+# --- signals -------------------------------------------------------------------------------
+# The bot turn that reads the posted requirement back.
+read_back:
+  - requirement
+  - रिक्वायरमेंट
+  - (की|के लिए) request
+  - enquiry
+  - इंक्वायरी
+
+# First caller turn after the read-back: the caller says it is wrong.
+requirement_rejected:
+  - \bnahi+\b
+  - नही   # also matches नहीं. No \b next to Devanagari: vowel signs are not word characters.
+  - \bgalat\b
+  - गलत
+  - \bwrong\b
+  - maine ye nahi
+  - मैंने (ये|यह) नहीं
+  - change kar
+  - चेंज कर
+  - कोई requirement नहीं
+  - \bno\b
+
+human_request:
+  - \bagent\b
+  - एजेंट
+  - insaan se
+  - इंसान से
+  - kisi aadmi se
+  - किसी आदमी से
+  - real person
+  - \bmanager\b
+  - मैनेजर
+  - customer care
+  - कस्टमर केयर
+  - \bexecutive\b
+  - एग्जीक्यूटिव
+  - किसी (और|सीनियर) से बात
+
+frustration:
+  - kitni baar
+  - कितनी बार
+  - maine bola na
+  - (मैंने|मैने) (बोला|बताया|कहा) (ना|न|तो)
+  - bata (diya|chuka)
+  - बता (दिया|चुका|चुकी)
+  - samajh nahi
+  - समझ (नहीं|नही) (आ|आता|आती)
+  - \bbakwas\b
+  - बकवास
+  - time waste
+  - टाइम वेस्ट
+  - phone rakh
+  - फोन (रख|काट)
+  - परेशान
+
+# A turn that is nothing but a "hello?" / "haan?" check; three or more means the caller cannot follow.
+hello_turn:
+  - ^\W*(hello|हेलो|हैलो|हलो|haan|हाँ|हां|ji|जी)\W*$
+
+# Bot asking the caller to repeat; twice or more means the bot is not hearing the caller.
+bot_did_not_understand:
+  - समझ (नहीं|नही) पा
+  - samajh nahi pa
+  - dobara
+  - दोबारा
+  - फिर से बता
+
+# A proper bot closing. A call whose last bot turn has none of these ended without a close.
+closing:
+  - दिन शुभ
+  - धन्यवाद
+  - thank you
+  - थैंक यू
+  - seller details
+  - contact करेंगे

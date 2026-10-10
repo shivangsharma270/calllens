@@ -1,0 +1,40 @@
+# Domain words passed to Saaras v4 as keyterms (max 50 terms, 64 characters each). One per line.
+IndiaMART
+requirement
+enquiry
+quantity
+seller
+sellers
+buyer
+WhatsApp
+details
+confirm
+piece
+pieces
+kilogram
+kg
+ton
+litre
+meter
+inch
+feet
+square feet
+wholesale
+business use
+personal use
+city
+state
+Delhi
+Mumbai
+Pune
+Ahmedabad
+Jaipur
+Lucknow
+Hyderabad
+Bengaluru
+Chennai
+Kolkata
+Rajasthan
+Maharashtra
+Gujarat
+Uttar Pradesh

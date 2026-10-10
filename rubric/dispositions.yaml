@@ -1,0 +1,29 @@
+# disposition_remarks -> group. Anything not listed here falls into `other`.
+# `success` means the system claims a lead was confirmed and sent on; the grader checks that claim.
+groups:
+  success:
+    - BL Enriched
+    - BL Approved
+    - BL Generated
+  abrupt:
+    - Abruptly Disconnected Call
+  caller_no_need:
+    - No Product Requirement
+    - Particular Company Details
+    - Selling Related
+    - Job Related_BL Not Approved
+    - BL Limit Exhausted
+  language_barrier:
+    - Language Barrier
+  technical:
+    - Technical Issue
+    - Queue Drop
+    - Technical Issue - Call Not Connected
+  other:
+    - Manual Call
+    - Enrichment Screen
+    - No Enrichment Scope
+    - Foreign or Disabled Users
+    - Call Forwarded
+    - Call Forwarded - No Product
+    - Call Forwarded - API Timeout

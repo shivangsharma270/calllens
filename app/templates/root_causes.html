@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Root Causes · CallLens by TeamStellarx{% endblock %}
+{% block content %}
+<section class="hero mb-6 flex flex-wrap items-center gap-4">
+  <div class="grow">
+    <h1 class="text-2xl font-bold">Root causes, ranked</h1>
+    <p class="text-sm text-slate-600 mt-1">Failed calls grouped by what went wrong, with the most damaging cause first.</p>
+  </div>
+  <form method="post" action="/root-causes/build">
+    <button class="btn-primary rounded-lg px-5 py-3 text-base font-bold disabled:opacity-50" {{ 'disabled' if not ready }}>{{ "↻ Regroup and re-rank" if causes else "▶ Group and rank" }}</button>
+  </form>
+</section>
+
+{% if notice %}<p class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm" role="alert">{{ notice }}</p>{% endif %}
+
+<div class="rounded-lg border border-slate-200 bg-white p-4 mb-5 text-sm">
+  <h2 class="font-semibold mb-2">How the priority score is computed</h2>
+  <div class="grid md:grid-cols-3 gap-3">
+    <div><p class="font-semibold">Frequency</p><p class="text-slate-700">Calls with this root cause ÷ all analysed calls.</p></div>
+    <div><p class="font-semibold">Severity</p><p class="text-slate-700">Average weight of its calls ÷ 3. A call weighs <strong>3</strong> if Fatal, <strong>2</strong> if Non-Fatal but the buyer was frustrated or the call did not reach its goal, <strong>1</strong> otherwise.</p></div>
+    <div><p class="font-semibold">Priority = frequency × severity × 100</p><p class="text-slate-700">Ranges 0–100. A cause scores 100 only if every analysed call has it and all of them are Fatal.</p></div>
+  </div>
+</div>
+
+{% if not causes %}
+<p class="rounded-lg border border-slate-200 bg-white p-6 text-sm">
+  {% if ready %}{{ available }} failed calls are ready to be grouped. Press <strong>Group and rank</strong>; it takes a few seconds and costs under ₹1.
+  {% else %}No Fatal calls or calls with issues have been analysed yet. <a class="text-blue-700 underline" href="/analyse">Run analysis</a> on some calls first.{% endif %}
+</p>
+{% else %}
+<p class="text-xs text-slate-500 mb-3">Grouped {{ meta.updated_at }} UTC from {{ meta.calls }} failed calls out of {{ meta.audited }} analysed{{ " (by the AI)" if meta.method == "ai" else " (by cause type and fatal code, because AI grouping failed)" }}.
+  {% if available != meta.calls %}<span class="text-amber-700">{{ available }} failed calls are available now; regroup to include them.</span>{% endif %}
+  Grouping and grades are AI-made and not yet checked by a person.</p>
+
+<div class="rounded-lg border border-slate-200 bg-white p-4 mb-5">
+  <h2 class="font-semibold mb-2">Priority by root cause</h2>
+  <div style="position: relative; height: {{ 60 + 34 * (causes | length) }}px"><canvas id="priorityChart" aria-label="Bar chart of priority score by root cause"></canvas></div>
+</div>
+
+{% for c in causes %}
+<article class="rounded-lg border border-slate-200 bg-white p-5 mb-4 fix-card">
+  <div class="flex flex-wrap items-baseline gap-3 mb-1">
+    <span class="fix-rank">{{ loop.index }}</span>
+    <h2 class="text-lg font-semibold grow">{{ c.name }}</h2>
+    <span class="rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold">{{ c.category }}</span>
+    <span class="num text-xl font-bold">{{ "%.1f" | format(c.priority) }}</span><span class="text-xs text-slate-500">priority</span>
+  </div>
+  <p class="text-sm text-slate-700 mb-3">{{ c.description }}</p>
+  <div class="grid sm:grid-cols-3 gap-3 text-sm mb-3">
+    <div class="rounded-lg border border-slate-200 p-3"><p class="text-xs text-slate-500">Frequency</p><p class="num text-lg font-bold">{{ "%.0f" | format(c.frequency * 100) }}%</p><p class="text-xs text-slate-600">{{ c.call_count }} of {{ meta.audited }} analysed calls</p></div>
+    <div class="rounded-lg border border-slate-200 p-3"><p class="text-xs text-slate-500">Severity</p><p class="num text-lg font-bold">{{ "%.2f" | format(c.severity) }}</p><p class="text-xs text-slate-600">{{ c.fatal }} Fatal (×3) · {{ c.serious }} serious (×2) · {{ c.minor }} minor (×1)</p></div>
+    <div class="rounded-lg border border-slate-200 p-3"><p class="text-xs text-slate-500">Priority</p><p class="num text-lg font-bold">{{ "%.1f" | format(c.priority) }}</p><p class="text-xs text-slate-600 num">{{ "%.2f" | format(c.frequency) }} × {{ "%.2f" | format(c.severity) }} × 100</p></div>
+  </div>
+  <details class="text-sm">
+    <summary class="cursor-pointer font-semibold text-blue-700">Show the {{ c.call_count }} call{{ "" if c.call_count == 1 else "s" }}</summary>
+    <ul class="mt-2 space-y-1.5">
+      {% for m in c.members %}
+      <li><a class="text-blue-700 underline num" href="/calls/{{ m.call_id }}">{{ m.call_id }}</a>
+        <span class="{{ 'text-red-600 font-semibold' if m.grade == 'FATAL' else 'text-amber-700' }}">{{ "Fatal " ~ (m.fatal_code or "") if m.grade == "FATAL" else "Non-Fatal" }}</span>
+        <span class="text-slate-700">— {{ m.reason | mask }}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+</article>
+{% endfor %}
+
+<script>
+  (function () {
+    const causes = {{ chart_data | tojson }};
+    new Chart(document.getElementById("priorityChart"), {
+      type: "bar",
+      data: {
+        labels: causes.map((c) => c.name),
+        datasets: [{ data: causes.map((c) => c.priority), backgroundColor: themeColor("--brand-red"), borderRadius: 6 }],
+      },
+      options: {
+        indexAxis: "y", maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (i) => `Priority ${i.formattedValue} · ${causes[i.dataIndex].calls} calls` } } },
+        scales: { x: { beginAtZero: true, title: { display: true, text: "Priority score (0–100)" }, grid: { color: themeColor("--line") } }, y: { grid: { display: false } } },
+      },
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

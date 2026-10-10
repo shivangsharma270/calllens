@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Runs · CallLens by TeamStellarx{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Data Runs</h1>
+
+{% if notice %}
+<p class="mb-4 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" role="status">{{ notice }}</p>
+{% endif %}
+{% if not key_set %}
+<p class="mb-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">SARVAM_API_KEY is not set in .env. Importing and downloading work; transcription and grading will not.</p>
+{% endif %}
+
+<section class="grid md:grid-cols-3 gap-4 mb-6">
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold">1 · Call log</h2>
+    <p class="text-sm text-slate-600 my-2">
+      {% if stats.total %}{{ stats.total }} calls loaded, {{ stats.recorded }} with a recording.
+      {% elif csv_present %}CSV found, not imported yet.
+      {% else %}Put <code>Call_Logs_Hackathon.csv</code> in the <code>data</code> folder.{% endif %}
+    </p>
+    <form method="post" action="/runs/import">
+      <button class="rounded bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50" {{ 'disabled' if not csv_present }}>{{ "Re-import CSV" if stats.total else "Import CSV" }}</button>
+    </form>
+  </div>
+
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold">2 · Recordings</h2>
+    <p class="text-sm text-slate-600 my-2">{{ stats.downloaded or 0 }} recordings ready: {{ stats.from_folder or 0 }} from the recordings folder, {{ (stats.downloaded or 0) - (stats.from_folder or 0) }} downloaded from call-log links{% if stats.unreachable %}; {{ stats.unreachable }} links did not return audio{% endif %}.</p>
+    <div class="flex flex-wrap gap-2">
+      <form method="post" action="/runs/import-folder">
+        <button class="rounded bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50" {{ 'disabled' if job }}>Scan recordings folder</button>
+      </form>
+      <form method="post" action="/runs/download">
+        <button class="rounded bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50" {{ 'disabled' if job or not stats.total }}>Download call-log recordings</button>
+      </form>
+    </div>
+    <p class="text-xs text-slate-500 mt-2 break-all">Folder: {{ recordings_dir }}</p>
+  </div>
+
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold">3 · Audit</h2>
+    <p class="text-sm text-slate-600 my-2">Transcribe, label speakers, detect signals and grade. Finished calls are skipped, and cached Sarvam answers are free.</p>
+    <form method="post" action="/runs/audit" class="flex flex-wrap items-center gap-2 mb-2">
+      <input type="hidden" name="scope" value="sample">
+      <label class="text-sm" for="size">Sample size</label>
+      <input id="size" name="size" type="number" min="1" max="717" value="{{ sample_size }}" class="w-20 rounded border border-slate-300 px-2 py-1 text-sm">
+      <button class="rounded bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50" {{ 'disabled' if job or not key_set or not stats.total }}>Run a sample</button>
+    </form>
+    <form method="post" action="/runs/audit">
+      <input type="hidden" name="scope" value="all">
+      <button class="rounded border border-blue-700 px-3 py-1.5 text-sm font-semibold text-blue-700 disabled:opacity-50" {{ 'disabled' if job or not key_set or not stats.total }}>Run all {{ stats.downloaded or 0 }} recordings</button>
+    </form>
+    <form method="post" action="/runs/regrade" class="mt-2">
+      <button class="rounded border border-slate-400 px-3 py-1.5 text-sm font-semibold disabled:opacity-50" {{ 'disabled' if job or not key_set or not stats.audited }}>Regrade audited calls</button>
+    </form>
+    <p class="text-xs text-slate-500 mt-2">The sample covers every disposition. Transcription costs about ₹45 per hour of audio. Regrade after editing the rubric or bot goal.</p>
+  </div>
+</section>
+
+<section class="grid md:grid-cols-2 gap-4">
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold mb-2">Calls by stage</h2>
+    <ul class="text-sm divide-y divide-slate-100">
+      {% for key, label in [("no_recording", "No recording in the log"), ("imported", "Waiting for download"), ("downloaded", "Downloaded, waiting for transcription"), ("transcribed", "Transcribed, waiting for grading"), ("graded", "Graded"), ("error", "Failed")] %}
+      <li class="flex justify-between py-1.5">
+        <a class="text-blue-700 hover:underline" href="/calls?status={{ key }}">{{ label }}</a>
+        <span class="num font-semibold">{{ statuses.get(key, 0) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if errors %}
+    <h3 class="font-semibold text-sm mt-4 mb-1">Why calls failed</h3>
+    <ul class="text-sm text-slate-700 space-y-1">
+      {% for e in errors %}<li><span class="num font-semibold">{{ e.n }}</span> × {{ e.error | mask }}</li>{% endfor %}
+    </ul>
+    <form method="post" action="/runs/retry-errors" class="mt-3">
+      <button class="rounded border border-slate-400 px-3 py-1.5 text-sm font-semibold disabled:opacity-50" {{ 'disabled' if job }}>Retry failed calls on next run</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="rounded-lg border border-slate-200 bg-white p-4">
+    <h2 class="font-semibold mb-2">Recent jobs</h2>
+    {% if not history %}<p class="text-sm text-slate-600">No jobs yet.</p>{% endif %}
+    <ul class="text-sm divide-y divide-slate-100">
+      {% for j in history %}
+      <li class="py-1.5">
+        <span class="font-medium">{{ j.kind }}</span>
+        <span class="{{ {'done': 'text-green-700', 'running': 'text-blue-700', 'failed': 'text-red-600'}.get(j.status, 'text-amber-600') }}">{{ j.status }}</span>
+        <span class="text-slate-500">· started {{ j.started_at }} UTC</span>
+        <div class="text-slate-600">{{ j.message }}{% if j.errors %} ({{ j.errors }} failed in the last stage){% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

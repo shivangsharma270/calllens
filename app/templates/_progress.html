@@ -1,0 +1,15 @@
+{# Job progress bar. Polls itself every 2 s only while a job runs; reloads the page when it ends. #}
+{% if job %}
+<div id="job-progress" hx-get="/jobs/current?was=running" hx-trigger="every 2s" hx-swap="outerHTML"
+     class="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3" role="status">
+  <div class="flex justify-between text-sm">
+    <span class="font-medium">{{ job.message }}</span>
+    <span class="num text-slate-600">{{ job.done }} / {{ job.total }}{% if job.errors %} · {{ job.errors }} failed{% endif %}</span>
+  </div>
+  <div class="mt-2 h-2 rounded bg-blue-100">
+    <div class="h-2 rounded bg-blue-600" style="width: {{ (100 * job.done / job.total) | round | int if job.total else 3 }}%"></div>
+  </div>
+</div>
+{% else %}
+<div id="job-progress"></div>
+{% endif %}

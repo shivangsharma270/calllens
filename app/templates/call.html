@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Call {{ call.call_id }} · CallLens by TeamStellarx{% endblock %}
+{% block content %}
+{% set req = grade.requirement | loads({}) if grade else {} %}
+{% set check = grade.disposition_check | loads({}) if grade else {} %}
+<p class="text-sm mb-2"><a class="text-blue-700 hover:underline" href="/calls">← Calls</a>{% if not grade and job %} <span class="text-slate-500">· analysis in progress; this page refreshes when it finishes</span>{% endif %}</p>
+<div class="flex flex-wrap items-center gap-3 mb-1">
+  <h1 class="text-2xl font-bold num">Call {{ call.call_id }}</h1>
+  {% if grade and grade.grade == "FATAL" %}<span class="rounded bg-red-100 px-2 py-0.5 font-semibold text-red-700">Fatal · {{ grade.fatal_code }}</span>
+  {% elif grade %}<span class="rounded px-2 py-0.5 font-semibold {{ 'bg-amber-100 text-amber-800' if grade.non_fatal_issues | loads([]) else 'bg-green-100 text-green-800' }}">Non-Fatal</span>
+  {% else %}<span class="rounded bg-slate-200 px-2 py-0.5 text-slate-700">{{ call.status.replace("_", " ") }}</span>{% endif %}
+  {% if grade and grade.needs_review %}<span class="rounded bg-amber-100 px-2 py-0.5 text-sm font-semibold text-amber-800">Needs review</span>{% endif %}
+  {% if has_audio or call.recording_url %}
+  <form method="post" action="/analyse" class="ml-auto flex items-center gap-3 text-sm">
+    <input type="hidden" name="call_ids" value="{{ call.call_id }}">
+    <input type="hidden" name="next_url" value="/calls/{{ call.call_id }}">
+    {% if grade %}<label class="flex items-center gap-1.5 text-slate-600"><input type="checkbox" name="redo_transcript" value="1"> redo transcript labelling</label>{% endif %}
+    <button class="rounded bg-blue-700 px-4 py-2 font-semibold text-white disabled:opacity-50" {{ 'disabled' if job }}>▶ {{ "Run analysis again" if grade else "Run analysis" }}</button>
+  </form>
+  {% endif %}
+</div>
+<p class="text-sm text-slate-600 mb-4">
+  {% if call.source == "folder" %}From the recordings folder ({{ call.original_name }}), no call-log entry{% else %}Logged as <strong>{{ call.disposition }}</strong> ({{ call.disposition_group }}) · {{ call.entered_on }}{% endif %} · {{ call.duration_s | dur }}
+  {% if call.language_code %}· {{ call.language_code }}{% if call.language_probability is not none %} ({{ (call.language_probability * 100) | round | int }}%){% endif %}{% endif %}
+</p>
+{% if call.error %}<p class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">{{ call.error | mask }}</p>{% endif %}
+
+<div class="grid lg:grid-cols-5 gap-4">
+  <section class="lg:col-span-3">
+    {% if has_audio %}
+    <div class="sticky top-0 z-10 mb-3 rounded-lg border border-slate-200 bg-white p-2">
+      <audio id="player" controls preload="metadata" src="/audio/{{ call.call_id }}" class="w-full"></audio>
+    </div>
+    {% elif call.has_recording %}
+    <p class="mb-3 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600">The recording has not been downloaded.</p>
+    {% else %}
+    <p class="mb-3 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600">This call has no recording in the log, so it cannot be audited.</p>
+    {% endif %}
+
+    {% if turns %}
+    <p class="text-xs text-slate-500 mb-2">Click a turn to play from there. Speakers labelled by: {{ call.speaker_method }}.</p>
+    <div class="flex flex-col gap-2">
+      {% for t in turns %}
+      {% set ev = by_turn.get(t.idx, []) %}
+      <button type="button" id="turn-{{ t.idx }}" data-start="{{ t.start_s }}"
+              class="turn text-left rounded-lg border px-3 py-2 max-w-[88%]
+                     {{ 'self-end bg-emerald-50 border-emerald-200' if t.speaker == 'CALLER' else ('bg-blue-50 border-blue-200' if t.speaker == 'BOT' else 'bg-white border-slate-200') }}
+                     {{ 'ring-2 ring-red-400' if ev }}">
+        <span class="block text-xs font-semibold text-slate-500">{{ t.speaker | capitalize }} · {{ t.start_s | dur }} · S{{ t.idx }}</span>
+        <span>{{ t.text | mask }}</span>
+        {% if t.raw_text %}<span class="mt-1 block text-xs text-slate-500" title="Text as the speech recogniser returned it, before repair">recogniser heard: {{ t.raw_text | mask }}</span>{% endif %}
+        {% for e in ev %}<span class="mt-1 block text-xs font-semibold text-red-700">Evidence ({{ e.supports.replace("_", " ") }}): “{{ e.quote | mask }}”</span>{% endfor %}
+      </button>
+      {% endfor %}
+    </div>
+    {% elif call.status in ("transcribed", "graded") %}
+    <p class="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600">No speech was recognised in this recording.</p>
+    {% endif %}
+  </section>
+
+  <aside class="lg:col-span-2 space-y-4">
+    {% if grade %}
+    <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <h2 class="font-semibold mb-2">Grade</h2>
+      <p class="mb-3">{{ grade.reason | mask }}</p>
+      <dl class="grid grid-cols-3 gap-x-2 gap-y-1.5">
+        <dt class="text-slate-500">Outcome</dt><dd class="col-span-2">{{ (grade.outcome or "").replace("_", " ") }}</dd>
+        <dt class="text-slate-500">Call ended by</dt><dd class="col-span-2">{{ (grade.who_ended_call or "").replace("_", " ") }}</dd>
+        <dt class="text-slate-500">Cause type</dt><dd class="col-span-2">{{ grade.failure_category }}</dd>
+        <dt class="text-slate-500">Root cause</dt><dd class="col-span-2">{{ grade.root_cause_hint | mask }}</dd>
+        <dt class="text-slate-500">Confidence</dt><dd class="col-span-2 num">{{ "%.2f" | format(grade.confidence) }}</dd>
+        <dt class="text-slate-500">Risk flags</dt><dd class="col-span-2 text-amber-700">{{ (grade.risk_flags | loads([])) | join(", ") | replace("_", " ") or "none" }}</dd>
+      </dl>
+      {% if grade.non_fatal_issues | loads([]) %}
+      <h3 class="font-semibold mt-3 mb-1">Minor issues</h3>
+      <ul class="list-disc pl-5 text-slate-700">{% for issue in grade.non_fatal_issues | loads([]) %}<li>{{ issue | mask }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+
+    <div class="rounded-lg border p-4 text-sm {{ 'border-amber-300 bg-amber-50' if check.supported == 'no' else 'border-slate-200 bg-white' }}">
+      <h2 class="font-semibold mb-2">Disposition check</h2>
+      <p>Logged: <strong>{{ check.logged }}</strong></p>
+      <p>Supported by the transcript: <strong class="{{ {'yes': 'text-green-700', 'no': 'text-red-700'}.get(check.supported, 'text-amber-700') }}">{{ check.supported }}</strong></p>
+      <p class="text-slate-700">{{ check.transcript_shows | mask }}</p>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <h2 class="font-semibold mb-2">Requirement</h2>
+      <dl class="space-y-1.5">
+        <div><dt class="text-slate-500">Bot read back{% if req.read_back_segment %} (<a href="#" class="text-blue-700 underline" data-seek-turn="{{ req.read_back_segment | replace('S', '') }}">{{ req.read_back_segment }}</a>){% endif %}</dt><dd>{{ (req.read_back_by_bot or "—") | mask }}</dd></div>
+        <div><dt class="text-slate-500">Buyer's response</dt><dd>{{ (req.caller_response or "—").replace("_", " ") }}</dd></div>
+        <div><dt class="text-slate-500">What the buyer wants</dt><dd>{{ (req.caller_stated or "—") | mask }}</dd></div>
+        <div><dt class="text-slate-500">What the bot captured</dt><dd>{{ (req.final_captured_by_bot or "—") | mask }}</dd></div>
+        <div><dt class="text-slate-500">Match</dt><dd class="font-semibold {{ {'match': 'text-green-700', 'mismatch': 'text-red-700'}.get(req.match, 'text-amber-700') }}">{{ (req.match or "—").replace("_", " ") }}</dd></div>
+      </dl>
+    </div>
+
+    {% if evidence %}
+    <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <h2 class="font-semibold mb-2">Evidence</h2>
+      <ul class="space-y-2">
+        {% for e in evidence %}
+        <li><a href="#" class="text-blue-700 underline num" data-seek-turn="{{ e.utterance_idx }}">S{{ e.utterance_idx }} · {{ e.start_s | dur }}</a>
+          <span class="text-slate-500">({{ e.supports.replace("_", " ") }})</span><br>“{{ e.quote | mask }}”</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <h2 class="font-semibold mb-2">Sarvam spend on this call</h2>
+      {% if spend.steps %}
+      <p class="num text-2xl font-bold mb-2">₹{{ "%.2f" | format(spend.total) }}</p>
+      <ul class="divide-y divide-slate-100">
+        {% for s in spend.steps %}<li class="flex justify-between py-1"><span>{{ s.step }}</span><span class="num font-semibold">₹{{ "%.2f" | format(s.cost) }}</span></li>{% endfor %}
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">{{ spend.requests }} Sarvam requests. Transcription is billed per second of audio. Answers reused from the cache cost nothing, and AI spend from before per-call tracking was added is counted in the total only.</p>
+      {% else %}
+      <p class="text-slate-600">No spend recorded for this call yet.</p>
+      {% endif %}
+    </div>
+
+    {% if signals %}
+    <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <h2 class="font-semibold mb-2">Rule-based signals</h2>
+      <ul class="space-y-1">
+        {% for s in signals %}
+        <li><span class="font-semibold text-amber-700">{{ s.type.replace("_", " ") }}</span>
+          {% if s.utterance_idx is not none %}<a href="#" class="text-blue-700 underline" data-seek-turn="{{ s.utterance_idx }}">S{{ s.utterance_idx }}</a>{% endif %}
+          <span class="text-slate-600">— {{ s.detail }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <details class="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <summary class="font-semibold cursor-pointer">Raw call log fields</summary>
+      <dl class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+        {% for key, value in raw_fields %}<dt class="text-slate-500 break-all">{{ key }}</dt><dd class="break-all">{{ value or "—" }}</dd>{% endfor %}
+      </dl>
+    </details>
+  </aside>
+</div>
+{% endblock %}

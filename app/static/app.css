@@ -1,0 +1,187 @@
+/* CallLens theme. Solid colours only (no gradients), white by default, with IndiaMART's navy
+   and red as the brand colours. Templates use plain Tailwind utility names; this file re-skins
+   those utilities through the variables below so the light and dark themes share every rule.
+   Colour meanings never change: red = Fatal, amber = risk / issues, green = clean,
+   grey = no recording, navy / blue = interactive. */
+html.neo {
+  --brand-navy: #2e3192;
+  --brand-red: #e0262d;
+  /* light (default) */
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-tint: #f3f4fc;
+  --header: #2e3192;
+  --header-text: #ffffff;
+  --line: #dfe2f1;
+  --line-strong: #b9bee0;
+  --text: #15183a;
+  --text-2: #454a70;
+  --text-3: #686d92;
+  --accent: #2e3192;
+  --accent-soft: #eceefb;
+  --btn: #2e3192;
+  --btn-hover: #23267a;
+  --field: #ffffff;
+  --fatal: #c61f2a;
+  --fatal-soft: #fdecee;
+  --risk: #9a5800;
+  --risk-soft: #fff3df;
+  --clean: #0f7a4a;
+  --clean-soft: #e6f6ee;
+  --shadow: 0 2px 10px rgba(46, 49, 146, 0.08);
+  --series-1: #2563eb;
+  --series-2: #f97316;
+  --series-3: #c026d3;
+  --series-4: #0d9488;
+  --series-5: #e0262d;
+  --series-6: #7c3aed;
+  color-scheme: light;
+}
+html.neo[data-theme="dark"] {
+  --bg: #0d1022;
+  --panel: #171b35;
+  --panel-tint: #1e2344;
+  --header: #171b35;
+  --line: #2c325c;
+  --line-strong: #454d85;
+  --text: #eef0fb;
+  --text-2: #bcc2df;
+  --text-3: #8d94b8;
+  --accent: #a3aaff;
+  --accent-soft: #232850;
+  --btn: #4c53d6;
+  --btn-hover: #5f66e6;
+  --field: #0d1022;
+  --fatal: #ff6b6b;
+  --fatal-soft: #3a1c26;
+  --risk: #ffb648;
+  --risk-soft: #3a2c14;
+  --clean: #3ddc97;
+  --clean-soft: #14352a;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --series-1: #60a5fa;
+  --series-2: #fb923c;
+  --series-3: #e879f9;
+  --series-4: #2dd4bf;
+  --series-5: #ff6b6b;
+  --series-6: #a78bfa;
+  color-scheme: dark;
+}
+
+html.neo body {
+  font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", "Noto Sans", "Noto Sans Devanagari",
+    "Nirmala UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- header: brand and navigation buttons ---- */
+html.neo header.site {
+  background: var(--header);
+  border-bottom: 4px solid var(--brand-red);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+html.neo .brand { color: var(--header-text, #fff); font-weight: 700; font-size: 20px; line-height: 1.1; }
+html.neo .brand small { display: block; font-size: 11px; font-weight: 500; opacity: 0.85; letter-spacing: 0.04em; }
+html.neo .navbtn {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+}
+html.neo .navbtn:hover { background: rgba(255, 255, 255, 0.16); border-color: #ffffff; }
+html.neo .navbtn.active { background: #ffffff; color: var(--brand-navy); border-color: #ffffff; }
+#theme-toggle {
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: #ffffff;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+}
+#theme-toggle:hover { background: rgba(255, 255, 255, 0.16); border-color: #ffffff; }
+
+/* ---- surfaces ---- */
+html.neo .bg-white, html.neo .bg-slate-50 { background: var(--panel) !important; }
+html.neo .rounded-lg.border { border-color: var(--line) !important; box-shadow: var(--shadow); }
+html.neo .rounded-lg.border.bg-white { border-top: 3px solid var(--brand-navy) !important; }
+html.neo .rounded-lg.border-red-300.bg-white { border-top-color: var(--fatal) !important; }
+html.neo a.rounded-lg.border:hover { border-color: var(--accent) !important; }
+html.neo [class*="border-slate-"] { border-color: var(--line) !important; }
+html.neo [class*="divide-slate-"] > * + * { border-color: var(--line) !important; }
+.hero { border: 1px solid var(--line); border-left: 6px solid var(--brand-red); border-radius: 12px; padding: 18px 22px; background: var(--panel-tint); }
+
+/* ---- text and headings ---- */
+html.neo .text-slate-900, html.neo .text-slate-800 { color: var(--text) !important; }
+html.neo .text-slate-700, html.neo .text-slate-600 { color: var(--text-2) !important; }
+html.neo .text-slate-500, html.neo .text-slate-400 { color: var(--text-3) !important; }
+html.neo h1 { color: var(--accent); }
+html.neo main h2 { color: var(--accent); border-left: 4px solid var(--brand-red); padding-left: 10px; }
+html.neo main h3, html.neo main h4 { color: var(--accent); }
+html.neo h3.text-red-600, html.neo h4.text-red-600 { color: var(--fatal) !important; }
+html.neo h3.text-green-700, html.neo h4.text-green-700 { color: var(--clean) !important; }
+html.neo .fix-card h2 { border-left: 0; padding-left: 0; }
+html.neo thead { background: var(--accent-soft); }
+html.neo th { color: var(--accent) !important; letter-spacing: 0.06em; }
+html.neo code { color: var(--accent); }
+
+/* ---- links, buttons, fields ---- */
+html.neo .text-blue-700 { color: var(--accent) !important; }
+html.neo .bg-blue-700, html.neo .btn-primary { background: var(--btn) !important; color: #ffffff !important; border: 0; }
+html.neo .bg-blue-700:hover:not(:disabled), html.neo .btn-primary:hover { background: var(--btn-hover) !important; }
+html.neo .bg-slate-800 { background: var(--accent-soft) !important; color: var(--text) !important; border: 1px solid var(--line-strong); }
+html.neo .bg-slate-800:hover:not(:disabled) { border-color: var(--accent); }
+html.neo button.border, html.neo .border-blue-700 { border-color: var(--line-strong) !important; color: var(--text) !important; background: transparent; }
+html.neo button.border:hover:not(:disabled) { border-color: var(--accent) !important; color: var(--accent) !important; }
+html.neo button:focus-visible, html.neo a:focus-visible, html.neo input:focus-visible, html.neo select:focus-visible { outline: 3px solid var(--series-2); outline-offset: 2px; }
+html.neo input, html.neo select { background: var(--field) !important; color: var(--text) !important; border-color: var(--line-strong) !important; }
+
+/* ---- status colours ---- */
+html.neo .text-red-600, html.neo .text-red-700, html.neo .text-red-800 { color: var(--fatal) !important; }
+html.neo .bg-red-100, html.neo .bg-red-50 { background: var(--fatal-soft) !important; }
+html.neo .border-red-300 { border-color: var(--fatal) !important; }
+html.neo .text-amber-600, html.neo .text-amber-700, html.neo .text-amber-800, html.neo .text-amber-900 { color: var(--risk) !important; }
+html.neo .bg-amber-100, html.neo .bg-amber-50 { background: var(--risk-soft) !important; }
+html.neo .border-amber-300 { border-color: var(--risk) !important; }
+html.neo .text-green-700, html.neo .text-green-800 { color: var(--clean) !important; }
+html.neo .bg-green-100 { background: var(--clean-soft) !important; }
+html.neo .bg-slate-200 { background: var(--accent-soft) !important; }
+
+/* ---- progress bar ---- */
+html.neo .bg-blue-50 { background: var(--accent-soft) !important; }
+html.neo .border-blue-200 { border-color: var(--line-strong) !important; }
+html.neo .bg-blue-100 { background: var(--line) !important; }
+html.neo .bg-blue-600 { background: var(--brand-red) !important; }
+
+/* ---- transcript ---- */
+html.neo .turn { color: var(--text); }
+html.neo .turn.bg-blue-50 { background: var(--accent-soft) !important; border-color: var(--line-strong) !important; }
+html.neo .turn.bg-emerald-50 { background: var(--clean-soft) !important; border-color: var(--clean) !important; }
+html.neo .turn:hover { border-color: var(--accent) !important; }
+html.neo .turn.playing { outline: 3px solid var(--series-2); outline-offset: 1px; }
+html.neo .turn.ring-2 { --tw-ring-color: var(--fatal) !important; }
+html.neo .sticky.top-0 { top: 70px; }
+
+/* ---- dashboard ---- */
+.kpi { border-radius: 10px; padding: 12px 14px; color: #ffffff; display: block; }
+.kpi .label { font-size: 12px; font-weight: 600; opacity: 0.92; }
+.kpi .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi .hint { font-size: 11px; opacity: 0.9; }
+.kpi.navy { background: #2e3192; } .kpi.blue { background: #2563eb; } .kpi.teal { background: #0d9488; }
+.kpi.red { background: #c61f2a; } .kpi.green { background: #0f7a4a; } .kpi.amber { background: #b45309; }
+.kpi.purple { background: #7c3aed; } .kpi.slate { background: #475569; }
+a.kpi:hover { filter: brightness(1.1); }
+.chart-box { position: relative; height: 230px; }
+.takeaway { margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: var(--panel-tint); font-size: 13px; color: var(--text); }
+.finding-count { min-width: 3ch; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fix-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; font-size: 14px; color: #ffffff; background: var(--brand-red); }
+html.neo .fix-new { border-color: var(--clean) !important; background: var(--clean-soft) !important; }

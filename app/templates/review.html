@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Review Queue · CallLens by TeamStellarx{% endblock %}
+{% block content %}
+<section class="hero mb-6">
+  <h1 class="text-2xl font-bold">Review queue</h1>
+  <p class="text-sm text-slate-600 mt-1">Risky calls that need a person to look at them, grouped by why they were flagged. {{ total }} flag{{ "" if total == 1 else "s" }} on {{ calls }} call{{ "" if calls == 1 else "s" }} {{ "open" if status == "open" else "done" }}.</p>
+  <p class="text-sm mt-2">
+    <a class="navlink {{ 'font-bold' if status == 'open' }} text-blue-700 underline mr-4" href="/review">Open</a>
+    <a class="{{ 'font-bold' if status == 'done' }} text-blue-700 underline" href="/review?status=done">Done</a>
+  </p>
+</section>
+
+<section class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" aria-label="Flag counts">
+  {% for g in groups if g.required %}
+  <a class="kpi {{ ['red', 'amber', 'purple', 'slate', 'blue'][loop.index0] }}" href="#{{ g.flag }}"><div class="label">{{ g.title }}</div><div class="value">{{ g["items"] | length }}</div><div class="hint">calls</div></a>
+  {% endfor %}
+</section>
+
+{% for g in groups %}
+{% if g.required or g["items"] %}
+<section id="{{ g.flag or g.title | replace(' ', '-') | lower }}" class="rounded-lg border border-slate-200 bg-white p-4 mb-4">
+  <h2 class="font-semibold text-lg">{{ g.title }} <span class="num text-sm font-normal text-slate-500">· {{ g["items"] | length }}</span></h2>
+  <p class="text-sm text-slate-600 mb-3">{{ g.text }}</p>
+  {% if not g["items"] %}
+  <p class="text-sm text-slate-500">No {{ "open" if status == "open" else "completed" }} calls with this flag.</p>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-left text-xs uppercase"><tr><th class="p-2">Call</th><th>Grade</th><th>Evidence from the call</th><th class="text-right pr-2">Action</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for item in g["items"] %}
+        <tr class="align-top">
+          <td class="p-2 whitespace-nowrap"><a class="text-blue-700 underline num" href="/calls/{{ item.call_id }}">{{ item.call_id }}</a><div class="text-xs text-slate-500">{{ item.disposition }}</div></td>
+          <td class="py-2 pr-3 whitespace-nowrap">{% if item.grade == "FATAL" %}<span class="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">Fatal {{ item.fatal_code or "" }}</span>{% elif item.grade %}<span class="rounded bg-green-100 px-1.5 py-0.5 font-semibold text-green-800">Non-Fatal</span>{% else %}—{% endif %}</td>
+          <td class="py-2 pr-3">
+            {% if item.quote %}<p>“{{ item.quote.quote | mask }}” <span class="text-xs text-slate-500">— {{ (item.quote.speaker or "?") | capitalize }}, S{{ item.quote.utterance_idx }}</span></p>{% endif %}
+            <p class="text-slate-600">{{ (item.grade_reason or "") | mask }}</p>
+          </td>
+          <td class="py-2 pr-2 text-right whitespace-nowrap">
+            {% if status == "open" %}
+            <form method="post" action="/review/{{ item.id }}/done"><button class="rounded border border-slate-400 px-3 py-1 text-sm font-semibold">Mark reviewed</button></form>
+            {% else %}<span class="text-green-700 font-semibold">Reviewed</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+{% endfor %}
+{% endblock %}

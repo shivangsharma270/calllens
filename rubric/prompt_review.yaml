@@ -1,0 +1,109 @@
+# Issues found by reading the bot's prompt (data/bot_prompt.txt) alongside real call transcripts.
+# These do not depend on the automatic grades. Each `quotes` entry must be text from the prompt;
+# the app checks every quote against the prompt file and marks any that no longer match.
+# Edit freely: add, remove or reword items as the prompt changes.
+items:
+  - title: Stop logging a successful lead when the buyer did not confirm it
+    impact: Wrong leads reach sellers (Fatal F2)
+    problem: >-
+      Three rules set a success outcome without the buyer confirming the lead. When the buyer says
+      they want a different product, the enrichment flow ends the call and logs "BL Enriched" for the
+      product they just rejected. When the buyer never answers the transfer question, the call is
+      also logged "BL Enriched". And "BL Approved" is set the moment the buyer says yes to the
+      opening line, so a call that drops ten seconds later still counts as an approved lead.
+    quotes:
+      - "update @ call_outcome to 'BL Enriched' then Call end_interaction and politely explain that we can currently assist only with"
+      - "If transfer consent is exhausted without agreement, do not transfer or mark silence/ambiguity as refusal. Set @ buyer_disposition and then @ call_outcome to 'BL Enriched'"
+      - "update the variable @ call_outcome to 'BL Approved' and @ buyer_disposition to 'BL Approved'"
+    suggested_text: >-
+      Set a success outcome only at FINALISATION. If the buyer rejects the current product and names
+      another, set @ call_outcome to 'Product Changed' (not 'BL Enriched'). If transfer consent is
+      exhausted with no answer, set 'BL Enriched' only when at least one requirement detail was
+      captured in this call; otherwise set 'No Response'. Until FINALISATION, keep @ call_outcome as
+      'In Progress' so a dropped call is never recorded as approved.
+    seen_in:
+      - call: "91063624"
+        note: buyer rejects powder and asks for liquid; call is logged as a generated lead
+
+  - title: Use one ask limit everywhere; the prompt currently gives four different ones
+    impact: Loops and repeated questions (Fatal F3, frustration)
+    problem: >-
+      The limits contradict each other, so the bot cannot follow them. Collection Control says
+      quantity, name, city and state may each be asked 3 times; the name section says 2; the
+      enrichment section is headed "STRICT MAX 3 ATTEMPTS" and then says 2; product identification
+      is "four-ask" in one place and "five-ask" in another. The location rules also say not to
+      proceed until the city is known, which overrides every limit.
+    quotes:
+      - "Total ask limits: product identification/requirement confirmation = 4; quantity = 3; each specification = 2; buyer name = 3; buyer city = 3; buyer state = 3; transfer consent = 2."
+      - "Buyer name may be requested a maximum of 2 times: Initial ask, One follow-up attempt"
+      - "Adaptive Follow-up — STRICT MAX 3 ATTEMPTS PER SLOT"
+      - "Each slot may be requested at most 2 times during the entire call"
+      - "Identification questions share the five-ask product allowance"
+      - "Ask a clarification question to identify the city. Do not proceed until the city is known."
+    suggested_text: >-
+      Ask limits (the only limits in this prompt): product confirmation 3; every other field 2 (one
+      ask, one follow-up). These override every other instruction, including location rules. After
+      the last allowed ask, say the detail can be discussed with the seller and move on. Delete
+      "Do not proceed until the city is known" and every other limit stated elsewhere.
+    seen_in:
+      - call: "90643029"
+        note: city and state asked three times in a row with no usable answer
+      - call: "91264775"
+        note: the same additive question asked three times; the specification limit is two
+
+  - title: Read back the captured details once before closing
+    impact: Wrong details recorded without anyone noticing (Fatal F2)
+    problem: >-
+      The bot is told never to repeat or reconfirm an answer. On noisy telephone audio it mishears,
+      and with no read-back the buyer never gets a chance to correct it. The prompt allows "a final
+      recap before lead submission" but no step tells the bot to give one.
+    quotes:
+      - "Do not repeat, paraphrase, summarize, or reconfirm the value."
+      - "A final recap is being delivered before lead submission."
+    suggested_text: >-
+      At FINALISATION, before the transfer question or the closing line, say one sentence that
+      repeats what was captured: product, amount with unit, and each specification value. Example:
+      "Toh aapko 6 millimeter ki corrugated sheet, 10 piece chahiye, sahi hai?" If the buyer corrects
+      anything, update it silently and continue. This recap is the one exception to the no-repeat rule.
+    seen_in:
+      - call: "90643029"
+        note: asked for length, buyer answers "दस piece", bot notes "10 feet" and moves on
+
+  - title: Answer "are you an AI?" directly, the first time
+    impact: Trust and compliance (Fatal F5)
+    problem: >-
+      The persona says never claim to be human, but another branch tells the bot not to reveal it is
+      a virtual assistant and not to answer "who is speaking?" with its identity. The sample reply
+      for the AI question says "I'm calling from IndiaMart" (the bot did not place the call) and
+      never says it is an AI. In a real call the buyer had to ask three times.
+    quotes:
+      - "You are a Virtual assistant from the Indiamart, never claim that you are a Human."
+      - "Do not reveal Virtual Assistant."
+      - "Reference tone: Yes, I'm calling from IndiaMart."
+    suggested_text: >-
+      If the buyer asks whether they are speaking to a person, a machine or an AI, answer in the
+      first reply: "Ji, main IndiaMART ki AI assistant hoon." Never say "insaan jaisi awaaz". This
+      rule overrides "Do not reveal Virtual Assistant". Hiding that the seller is unavailable is
+      allowed; hiding that you are an AI is not. Do not say you are "calling from" IndiaMART; the
+      buyer called.
+    seen_in:
+      - call: "90643029"
+        note: asked three times; the bot twice says it is helping "इंसान जैसी आवाज़ में" before admitting it is a digital assistant
+
+  - title: Do not accept an answer that does not fit the question
+    impact: Leads enriched with meaningless values
+    problem: >-
+      The prompt tells the bot that missing information is acceptable and to keep moving, and it is
+      strict about not re-asking. Together these let the bot accept an answer that makes no sense
+      for the field and close as if the detail was collected.
+    quotes:
+      - "Missing information is acceptable. Repeated questioning is not."
+    suggested_text: >-
+      Before capturing a value, check that it is a possible value for that field (a number with a
+      unit for an amount, one of the options or a sensible custom value for a specification). If it
+      is not, do not store it: use the one follow-up to ask again with the two options, and if it is
+      still unclear record the field as "to discuss with seller". Never store a value you did not
+      understand.
+    seen_in:
+      - call: "91046471"
+        note: asked for motor power (7.5 HP or 5 HP), transcript shows "पांच व्यक्ति"; the bot closes as if answered
