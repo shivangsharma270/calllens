@@ -11,6 +11,8 @@ AUDIO_DIR = DATA_DIR / "audio"
 CACHE_DIR = DATA_DIR / "cache"
 DB_PATH = DATA_DIR / "calllens.db"
 CSV_PATH = DATA_DIR / "Call_Logs_Hackathon.csv"
+# Snapshot shipped with the repo: used when a fresh copy (for example a hosted demo) has no data yet.
+SEED_DIR = ROOT / "seed"
 RUBRIC_DIR = ROOT / "rubric"
 # Folder of call recordings on this machine; every audio file in it becomes a call.
 RECORDINGS_DIR = Path(os.getenv("RECORDINGS_DIR", str(ROOT.parent / "call_recordings")))

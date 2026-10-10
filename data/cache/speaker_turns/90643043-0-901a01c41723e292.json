@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 0,\n      \"speaker\": \"bot\",\n      \"text\": \"हेलो आपको कौन सा product चाहिए?\"\n    },\n    {\n      \"i\": 1,\n      \"speaker\": \"bot\",\n      \"text\": \"शायद आपके product के बारे में clear नहीं हो पाया कृपया बताइए आपको कौन सा product चाहिए?\"\n    }\n  ]\n}", "finish_reason": "stop"}

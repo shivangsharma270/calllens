@@ -4,7 +4,7 @@ import re
 from collections import Counter
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -321,9 +321,15 @@ async def call_detail(request: Request, call_id: str) -> HTMLResponse:
 async def audio(call_id: str) -> FileResponse:
     """The local recording. FileResponse answers Range requests, so the player can seek."""
     path = db.val("SELECT audio_path FROM call WHERE call_id=?", call_id)
-    if not path or not Path(path).is_file():
+    if not path:
         raise HTTPException(404, "Recording not downloaded")
-    return FileResponse(path, content_disposition_type="inline")
+    # The stored path is from the machine that loaded the call; on another machine look the file up by name.
+    name = PureWindowsPath(path).name
+    folders = (config.AUDIO_DIR, config.RECORDINGS_DIR, config.SEED_DIR / "recordings")
+    found = next((p for p in (Path(path), *(f / name for f in folders)) if p.is_file()), None)
+    if found is None:
+        raise HTTPException(404, "Recording not downloaded")
+    return FileResponse(found, content_disposition_type="inline")
 
 
 # ---- recordings folder, run analysis on chosen calls, AI summary ---------------------------

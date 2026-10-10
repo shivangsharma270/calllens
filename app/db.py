@@ -6,12 +6,13 @@ Never touch these helpers from inside `asyncio.to_thread`.
 """
 
 import json
+import shutil
 import sqlite3
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
-from app.config import DB_PATH
+from app.config import DB_PATH, SEED_DIR
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS call (
@@ -112,6 +113,9 @@ def conn() -> sqlite3.Connection:
     global _conn
     if _conn is None:
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        seed = SEED_DIR / DB_PATH.name
+        if not DB_PATH.exists() and seed.is_file():
+            shutil.copyfile(seed, DB_PATH)  # start from the shipped snapshot
         _conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None, check_same_thread=False)
         _conn.row_factory = sqlite3.Row
         _conn.execute("PRAGMA journal_mode=WAL")

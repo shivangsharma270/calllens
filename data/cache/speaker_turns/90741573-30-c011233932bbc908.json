@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 30,\n      \"speaker\": \"bot\",\n      \"text\": \"आप उनसे details discuss कर सकते हैं बस पहले अपनी capacity confirm कर दीजिए please।\"\n    },\n    {\n      \"i\": 31,\n      \"speaker\": \"caller\",\n      \"text\": \"ठीक है।\"\n    }\n  ]\n}", "finish_reason": "stop"}

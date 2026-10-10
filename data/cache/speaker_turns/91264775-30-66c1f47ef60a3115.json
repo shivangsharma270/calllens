@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\"i\": 30, \"speaker\": \"bot\", \"text\": \"IndiaMART चुनने के लिए धन्यवाद।\"},\n    {\"i\": 31, \"speaker\": \"bot\", \"text\": \"आपका दिन शुभ हो।\"},\n    {\"i\": 32, \"speaker\": \"caller\", \"text\": \"हाँ।\"},\n    {\"i\": 33, \"speaker\": \"caller\", \"text\": \"piece.\"}\n  ]\n}", "finish_reason": "stop"}

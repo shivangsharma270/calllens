@@ -1,0 +1,1 @@
+{"content": "{\n  \"fixes\": [\n    {\n      \"heard\": \"Good Ride 235 65 AR 17 HC\",\n      \"correct\": \"Goodride 235/65 R17\"\n    },\n    {\n      \"heard\": \"radial tyre\",\n      \"correct\": \"radial tyre\"\n    }\n  ]\n}", "finish_reason": "stop"}

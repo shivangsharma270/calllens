@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 0,\n      \"speaker\": \"bot\",\n      \"text\": \"Hello गौरव जी आपको 14 kg hello गौरव जी अभी हमारी\"\n    },\n    {\n      \"i\": 1,\n      \"speaker\": \"caller\",\n      \"text\": \"हमारे\"\n    }\n  ]\n}", "finish_reason": "stop"}

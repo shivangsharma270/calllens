@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 0,\n      \"speaker\": \"bot\",\n      \"text\": \"Hello Sarvanand जी आपको कौन सा product चाहिए?\"\n    },\n    {\n      \"i\": 1,\n      \"speaker\": \"caller\",\n      \"text\": \"पूछिए।\"\n    }\n  ]\n}", "finish_reason": "stop"}

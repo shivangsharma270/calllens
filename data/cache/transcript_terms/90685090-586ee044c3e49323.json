@@ -1,0 +1,1 @@
+{"content": "{\n  \"fixes\": [\n    {\n      \"heard\": \"HP Laser Jet M1005\",\n      \"correct\": \"HP LaserJet M1005\"\n    },\n    {\n      \"heard\": \"power supply उड़ गया है\",\n      \"correct\": \"power supply खराब हो गया है\"\n    }\n  ]\n}", "finish_reason": "stop"}

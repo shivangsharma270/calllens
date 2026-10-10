@@ -1,0 +1,1 @@
+{"content": "{\n  \"fixes\": [\n    {\n      \"heard\": \"Samsung M23GB 32GB\",\n      \"correct\": \"Samsung M32 32GB\"\n    },\n    {\n      \"heard\": \"6 GB\",\n      \"correct\": \"6 GB\"\n    }\n  ]\n}", "finish_reason": "stop"}

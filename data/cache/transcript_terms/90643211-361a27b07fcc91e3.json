@@ -1,0 +1,1 @@
+{"content": "{\n  \"fixes\": [\n    {\n      \"heard\": \"अरुण\",\n      \"correct\": \"अर्न\"\n    },\n    {\n      \"heard\": \"vertical\",\n      \"correct\": \"वर्टिकल\"\n    },\n    {\n      \"heard\": \"wind\",\n      \"correct\": \"विंड\"\n    },\n    {\n      \"heard\": \"turbine\",\n      \"correct\": \"टर्बाइन\"\n    }\n  ]\n}", "finish_reason": "stop"}

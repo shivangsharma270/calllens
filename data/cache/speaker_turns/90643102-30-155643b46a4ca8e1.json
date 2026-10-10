@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 30,\n      \"speaker\": \"bot\",\n      \"text\": \"आपको कौन सा?\"\n    },\n    {\n      \"i\": 31,\n      \"speaker\": \"caller\",\n      \"text\": \"पूरे seller details WhatsApp पे भेज दो।\"\n    }\n  ]\n}", "finish_reason": "stop"}

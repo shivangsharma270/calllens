@@ -1,0 +1,1 @@
+{"content": "{\n  \"labels\": [\n    {\n      \"i\": 0,\n      \"speaker\": \"bot\",\n      \"text\": \"Hello Pinky जी आपकी shop plastic animal toys pen bat pencil box की enquiry IndiaMART\"\n    },\n    {\n      \"i\": 1,\n      \"speaker\": \"caller\",\n      \"text\": \"जी आपकी\"\n    }\n  ]\n}", "finish_reason": "stop"}
